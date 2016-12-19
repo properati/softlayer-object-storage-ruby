@@ -202,17 +202,15 @@ module SoftLayer
       def self.get_account(url, token, marker=nil, limit=nil, prefix=nil, 
           http_conn=nil, full_listing=false, cdn_only = false)
         #todo: add in rest of functionality
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         if full_listing
-          rv = get_account(url, token, marker, limit, prefix, http_conn)
+          rv = get_account(url, token, marker, limit, prefix, conn)
           listing = rv[1]
           while listing.length > 0
             marker = listing[-1]['name']
-            listing = get_account(url, token, marker, limit, prefix, http_conn)[1]
+            listing = get_account(url, token, marker, limit, prefix, conn)[1]
             if listing.length > 0
               rv[1] += listing
             end
@@ -244,6 +242,8 @@ module SoftLayer
         else
           [resp_headers, JSON.parse(resp.body)]
         end
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def get_account(marker=nil, limit=nil, prefix=nil, full_listing=false)
@@ -251,11 +251,9 @@ module SoftLayer
       end
           
       def self.head_account(url, token, http_conn=nil)
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         conn.start if !conn.started?
         resp = conn.head(parsed.request_uri, {'x-auth-token' => token})
         if resp.code.to_i < 200 or resp.code.to_i > 300
@@ -269,6 +267,8 @@ module SoftLayer
           resp_headers[k.downcase] = v
         end
         resp_headers
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def head_account
@@ -276,11 +276,9 @@ module SoftLayer
       end
 
       def self.post_account(url, token, headers, http_conn=nil)
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         headers['x-auth-token'] = token
         conn.start if !conn.started?
         resp = conn.post(parsed.request_uri, nil, headers)
@@ -291,7 +289,10 @@ module SoftLayer
                   :http_reason=>resp.message)
         end
         resp.body
+      ensure
+        conn.finish if http_conn.nil?
       end
+
       def post_account(headers=nil)
         _retry(nil, :post_account, [headers, @http_conn])
       end
@@ -299,18 +300,16 @@ module SoftLayer
       def self.get_container(url, token, container, marker=nil, limit=nil, 
             prefix=nil, delimiter=nil, http_conn=nil, full_listing=nil)
         #todo: add in rest of functionality
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         
         if full_listing
-          rv = get_account(url, token, marker, limit, prefix, http_conn)
+          rv = get_account(url, token, marker, limit, prefix, conn)
           listing = rv[1]
           while listing.length > 0
             marker = listing[-1]['name']
-            listing = get_account(url, token, marker, limit, prefix, http_conn)[1]
+            listing = get_account(url, token, marker, limit, prefix, conn)[1]
             if listing.length > 0
               rv[1] += listing
             end
@@ -341,6 +340,8 @@ module SoftLayer
         else
           [resp_headers, JSON.parse(resp.body())]
         end
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def get_container(container, marker=nil, limit=nil, prefix=nil, delimiter=nil, full_listing=nil)
@@ -348,11 +349,9 @@ module SoftLayer
       end
 
       def self.head_container(url, token, container, http_conn=nil, cdn = false)
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         
         conn.start if !conn.started?
         parsed.path += "/#{container}"
@@ -370,6 +369,8 @@ module SoftLayer
           resp_headers[k.downcase] = v
         end
         resp_headers
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def head_container(container)
@@ -377,11 +378,9 @@ module SoftLayer
       end
 
       def self.put_container(url, token, container, headers={}, http_conn=nil)
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         
         conn.start if !conn.started?
         parsed.path += "/#{container}"
@@ -394,6 +393,8 @@ module SoftLayer
                       :http_path=>parsed.path, :http_status=>resp.code,
                       :http_reason=>resp.message)  
         end
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def put_container(container, headers={})
@@ -401,11 +402,9 @@ module SoftLayer
       end
 
       def self.post_container(url, token, container, headers={}, http_conn=nil)
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         
         conn.start if !conn.started?
         parsed.path += "/#{container}"
@@ -417,6 +416,8 @@ module SoftLayer
                       :http_path=>parsed.path, :http_status=>resp.code,
                       :http_reason=>resp.message + "\n#{headers.inspect}")
         end
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def post_container(container, headers={})
@@ -424,11 +425,9 @@ module SoftLayer
       end
 
       def self.delete_container(url, token, container, headers={}, http_conn=nil, recursive = false)
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         
         conn.start if !conn.started?
         parsed.path += "/#{container}"
@@ -441,6 +440,8 @@ module SoftLayer
                       :http_path=>parsed.path, :http_status=>resp.code,
                       :http_reason=>resp.message)
         end
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def delete_container(container)
@@ -448,12 +449,9 @@ module SoftLayer
       end
 
       def self.get_object(url, token, container, name, http_conn=nil, resp_chunk_size=nil, &block)
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
-        
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
 
         parsed.path += "/#{container}/#{name}"
         conn.start if not conn.started?
@@ -480,6 +478,8 @@ module SoftLayer
           resp_headers[k.downcase] = v
         end
         [resp_headers, object_body]
+      ensure
+        conn.finish if http_conn.nil?
       end
 
       def get_object(container, name, resp_chunk_size=nil)
@@ -487,12 +487,9 @@ module SoftLayer
       end
         
       def self.head_object(url, token, container, name, http_conn=nil)
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
-        
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
 
         parsed.path += "/#{container}/#{name}"
         conn.start if not conn.started?
@@ -508,6 +505,8 @@ module SoftLayer
           resp_headers[k.downcase] = v
         end
         resp_headers
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def head_object(container, name)
@@ -518,11 +517,9 @@ module SoftLayer
                      content_length=nil, etag=nil, chunk_size=nil,
                      content_type=nil, headers={}, http_conn=nil, proxy=nil)
         chunk_size ||= 65536
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
                       
         parsed.path += "/#{container}" if container
         parsed.path += "/#{name}" if name
@@ -561,6 +558,8 @@ module SoftLayer
                       :http_reason=>resp.message)
         end
         resp.header['etag']
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def put_object(container, obj, contents, content_length=nil, etag=nil, chunk_size=65536, content_type=nil, headers={})
@@ -579,11 +578,9 @@ module SoftLayer
       end
                      
       def self.post_object(url, token=nil, container=nil, name=nil, headers={}, http_conn=nil)
-        if not http_conn
-           http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         
         parsed.path += "/#{container}" if container
         parsed.path += "/#{name}" if name
@@ -595,6 +592,8 @@ module SoftLayer
                       :http_path=>parsed.path, :http_status=>resp.code,
                       :http_reason=>resp.message)
         end
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def post_object(container, name, headers={})
@@ -602,11 +601,9 @@ module SoftLayer
       end
       
       def self.delete_object(url, token=nil, container=nil, name=nil, http_conn=nil, headers={}, proxy=nil)
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
         
         conn.start if !conn.started?
         parsed.path += "/#{container}" if container
@@ -619,6 +616,8 @@ module SoftLayer
                       :http_path=>parsed.path, :http_status=>resp.code,
                       :http_reason=>resp.message)
         end
+      ensure
+        conn.finish if http_conn.nil?
       end
       
       def delete_object(container, name, headers={})
@@ -626,11 +625,9 @@ module SoftLayer
       end
 
       def self.search(url, options = {}, token = nil, http_conn = nil, headers={})
-        if not http_conn
-          http_conn = http_connection(url)
-        end
-        parsed = http_conn[0].clone
-        conn = http_conn[1]
+        conn = http_conn || http_connection(url)
+        parsed = conn[0].clone
+        conn = conn[1]
 
         conn.start if !conn.started?
         options['format'] = 'json'
@@ -652,7 +649,8 @@ module SoftLayer
           response[:items] = JSON.parse(resp.body)
         end
         response
-
+      ensure
+        conn.finish if http_conn.nil?
       end
     end
   end
